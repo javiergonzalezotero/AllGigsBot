@@ -1,7 +1,7 @@
 'use strict'
 
 var tg = require('telegram-node-bot')('235862604:AAEOyEiEa8PXJnO5jUa766K53yFCK843YgA');
-var redis = require('redis');
+//var redis = require('redis');
 var request = require('request');
 var fs = require('fs');
 var config = require('./config');
@@ -10,69 +10,17 @@ var sk = new Songkick(config.sk_token);
 
 //just to heroku
 require('./web');
-
 var logoId;
 
 
 tg.router.
-when(['ping'], 'PingController').when(['/start'], 'StartController').
+when(['/start'], 'HelpController').when(['/help'], 'HelpController').
 otherwise('OtherwiseController')
 
-tg.controller('PingController', ($) => {
-    tg.for('ping', () => {
-        $.sendMessage('*pong* ``` #!java public static void main; ```', {parse_mode : 'Markdown'});
-        $.runInlineMenu('sendMessage', 'Select:', {}, [
-        {
-            text: '1',
-            callback: ($) => {
-                console.log($);
-                console.log(1);
-                var keyboard = [ [ { text: '2', url : 'www.google.es'},
-                { text: '3' ,url : 'www.google.es'} ] ];
-                tg.editMessageText("heyeye", {
-                    chat_id: $.message.chat.id, 
-                    message_id: $.message.message_id,
-                    reply_markup : JSON.stringify({
-                        inline_keyboard: keyboard
-                    })
-                }, function(body, err){
-                    console.log(err);
-                });
-                tg.answerCallbackQuery($.id + ':' + $.data, {text : "Notiff", show_alert : false});
-            }
-        },
-        {
-            text: '2',
-            url: 'telegram.org',
-            callback: ($) => {
-                console.log('telegram.org')
-            }
-        }
-        ], [2]);
-    });
-});
-
-tg.controller('StartController', ($) => {
-    console.log("start controller\n" + $);
-    $.runMenu({
-        message: 'Select:',
-        options: {
-        parse_mode: 'Markdown' // in options field you can pass some additional data, like parse_mode
-    },
-    'Exit': {
-        message: 'Do you realy want to exit?',
-        resize_keyboard: true,
-        'yes': () => {
-            console.log($);
-        },
-        'no': () => {
-
-        }
-    },
-    'anyMatch': () => { //will be executed at any other message
-
-    }
-}) 
+tg.controller('HelpController', ($) => {
+   $.sendMessage("Just write down the name of your favourite band to see its upcoming concerts. " +
+    "To get the list of upcoming concerts near you send your location. \n\n" +
+    "Inline mode is also available", {parse_mode : 'Markdown'});
 });
 
 
@@ -84,7 +32,6 @@ tg.controller('OtherwiseController', ($) => {
         var location = 'geo:' + $.message.location.latitude + ',' + $.message.location.longitude;
         options.location = location;
     }
-
 
     options.per_page = 5;
 
@@ -99,11 +46,11 @@ tg.controller('OtherwiseController', ($) => {
 });
 
 
-function prepareResponse(events){
+function prepareList(events){
     var response="*Concerts list:*";
     var delim = "\n";
     events.forEach( (event) => {
-        //TODO to get the actual date of performace, but it would be too slow, request SongKick to include
+        //TODO get the actual date of performace, but it would be too slow, request SongKick to include
         //date field in the performance array included in the event
 /*        if(event.type == 'Festival'){
             sk.searchPerformances({artist_id: event.performance[0].artist.id})
@@ -124,7 +71,11 @@ function prepareResponse(events){
         if (event.location.city) {
             city += event.location.city;
         }
-        response += delim + event.displayName + city +"\n" + "[Info + Tickets]("+event.uri+")"; 
+        var displayName = event.displayName;
+        if (event.type == 'Festival') {
+            displayName = "_" + event.displayName + "_";
+        }
+        response += delim + displayName + city +"\n" + "[Info + Tickets]("+event.uri+")"; 
         delim = "\n\n";
     });
     return response;
@@ -137,7 +88,7 @@ function sendListConcerts($,events){
         return;
     }
     //All is good. Print the list
-    $.sendMessage(prepareResponse(events), {parse_mode : 'Markdown', disable_web_page_preview : true});
+    $.sendMessage(prepareList(events), {parse_mode : 'Markdown', disable_web_page_preview : true});
 }
 
 function sendListConcertsPaginated($, events, nPages, options){
@@ -156,7 +107,7 @@ function sendListConcertsPaginated($, events, nPages, options){
 
 function sendListConcertsAfterPhoto($, events, nPages, options){
     if(nPages == 1){
-        $.sendMessage(prepareResponse(events), {parse_mode : 'Markdown', disable_web_page_preview : true});
+        $.sendMessage(prepareList(events), {parse_mode : 'Markdown', disable_web_page_preview : true});
         return;
     }
     var arrayEvents = events;
@@ -183,7 +134,7 @@ function sendListConcertsAfterPhoto($, events, nPages, options){
     }
 
     var currentPage = 1;
-    $.runInlineMenu('sendMessage', prepareResponse(events), 
+    $.runInlineMenu('sendMessage', prepareList(events), 
         {parse_mode : 'Markdown',
         disable_web_page_preview : true
     }, initialKeyboard, [3]);
@@ -221,7 +172,6 @@ function sendListConcertsAfterPhoto($, events, nPages, options){
               {text: prepareLabelButton(center + 1, btnPressed), callback_data: (center + 1) + ":" + messageId});
         }
 
-
         options.page = btnPressed;
 
         if(arrayEvents[(btnPressed - 1) * options.per_page]){
@@ -231,10 +181,10 @@ function sendListConcertsAfterPhoto($, events, nPages, options){
             sk.searchEvents(options)
             .then(function(events) {
                 for (var i = 0; i < events.length; i++) {
-                   arrayEvents[(btnPressed - 1) * options.per_page + i] = events[i];   
-               }
-               editMessage($, events, keyboard);
-           })
+                 arrayEvents[(btnPressed - 1) * options.per_page + i] = events[i];   
+             }
+             editMessage($, events, keyboard);
+         })
             .catch(function(error) {
                 console.log(error);
             });
@@ -243,7 +193,7 @@ function sendListConcertsAfterPhoto($, events, nPages, options){
 
 
     var editMessage = function($, events, keyboard){
-        tg.editMessageText(prepareResponse(events), {
+        tg.editMessageText(prepareList(events), {
             chat_id: $.message.chat.id, 
             message_id: $.message.message_id,
             parse_mode : 'Markdown',
@@ -267,9 +217,43 @@ function sendListConcertsAfterPhoto($, events, nPages, options){
 }
 
 
-
-//INLINE MODE
+//INLINE MODE EVENTS
 tg.inlineMode(($) => {
+    if($.query){
+        sk.searchEvents({
+            'artist_name': $.query
+        })
+        .then(function(events) {
+            var results = [];
+            if(events){
+                events.forEach((event) => {
+                    var city = ""
+                    if (event.location.city) {
+                        city += event.location.city;
+                    }
+                    results.push({
+                        type : "article", 
+                        title : event.displayName,
+                        input_message_content: {
+                            parse_mode: "Markdown",
+                            disable_web_page_preview : true,
+                            message_text: "*" + event.displayName +
+                            "*\n"+ city +"\n" + "[Info + Tickets]("+event.uri+")"
+                        },
+                        description : city
+                    });
+                });
+            }
+            tg.paginatedAnswer($, results, 5);
+        })
+        .catch(function(error) {
+            console.log(error);
+        })
+    }
+})
+
+//INLINE MODE ARTISTS
+/*tg.inlineMode(($) => {
     if($.query){
         sk.searchArtists({
             'query': $.query
@@ -289,10 +273,9 @@ tg.inlineMode(($) => {
                 });
                 tg.paginatedAnswer($, results, 10);
             }
-            
         })
         .catch(function(error) {
             console.log(error);
         })
     }
-})
+})*/
