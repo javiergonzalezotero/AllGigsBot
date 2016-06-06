@@ -9,7 +9,7 @@ var Songkick = require('./songkick-api-extended');
 var sk = new Songkick(config.sk_token);
 
 //just to heroku
-//require('./web');
+require('./web');
 var logoId;
 
 
