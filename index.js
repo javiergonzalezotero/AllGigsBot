@@ -1,15 +1,15 @@
 'use strict'
 
-var tg = require('telegram-node-bot')('235862604:AAEOyEiEa8PXJnO5jUa766K53yFCK843YgA');
+var config = require('./config');
+var tg = require('telegram-node-bot')(config.bot_token);
 //var redis = require('redis');
 var request = require('request');
 var fs = require('fs');
-var config = require('./config');
 var Songkick = require('./songkick-api-extended');
 var sk = new Songkick(config.sk_token);
 
 //just to heroku
-require('./web');
+//require('./web');
 var logoId;
 
 
