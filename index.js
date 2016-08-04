@@ -2,13 +2,12 @@
 
 var config = require('./config');
 var tg = require('telegram-node-bot')(config.bot_token);
-//var redis = require('redis');
 var request = require('request');
 var fs = require('fs');
 var Songkick = require('./songkick-api-extended');
 var sk = new Songkick(config.sk_token);
 
-//just to heroku
+//needed for heroku
 require('./web');
 var logoId;
 
@@ -26,6 +25,7 @@ tg.controller('HelpController', ($) => {
 
 tg.controller('OtherwiseController', ($) => {
     var options = {};
+    options.per_page = 5;
     if ($.message.text) {
         options.artist_name = $.message.text;
     } else if ($.message.location) {
@@ -33,9 +33,8 @@ tg.controller('OtherwiseController', ($) => {
         options.location = location;
     }
 
-    options.per_page = 5;
 
-    sk.searchEventsWholeAnswer(options)
+    sk.searchEventsCache(options, true)
     .then(function(response) {
         var nPages = Math.ceil(response.totalEntries / options.per_page);
         sendListConcertsPaginated($,response.results.event, nPages, options);
@@ -50,8 +49,7 @@ function prepareList(events){
     var response="*Concerts list:*";
     var delim = "\n";
     events.forEach( (event) => {
-        //TODO get the actual date of performace, but it would be too slow, request SongKick to include
-        //date field in the performance array included in the event
+        //TODO get the actual date of performace, but it would be slower
 /*        if(event.type == 'Festival'){
             sk.searchPerformances({artist_id: event.performance[0].artist.id})
             .then(function(performances) {
@@ -178,7 +176,7 @@ function sendListConcertsAfterPhoto($, events, nPages, options){
             editMessage($, 
                 events.slice((btnPressed - 1) * options.per_page, btnPressed  * options.per_page), keyboard);
         }else{
-            sk.searchEvents(options)
+            sk.searchEventsCache(options, false)
             .then(function(events) {
                 for (var i = 0; i < events.length; i++) {
                  arrayEvents[(btnPressed - 1) * options.per_page + i] = events[i];   
@@ -220,9 +218,9 @@ function sendListConcertsAfterPhoto($, events, nPages, options){
 //INLINE MODE EVENTS
 tg.inlineMode(($) => {
     if($.query){
-        sk.searchEvents({
+        sk.searchEventsCache({
             'artist_name': $.query
-        })
+        }, false)
         .then(function(events) {
             var results = [];
             if(events){
