@@ -17,7 +17,7 @@ when(['/start'], 'HelpController').when(['/help'], 'HelpController').
 otherwise('OtherwiseController')
 
 tg.controller('HelpController', ($) => {
-   $.sendMessage("Just write down the name of your favourite band to see its upcoming concerts. " +
+ $.sendMessage("Just write down the name of your favourite band to see its upcoming concerts. " +
     "To get the list of upcoming concerts near you send your location. \n\n" +
     "Inline mode is also available", {parse_mode : 'Markdown'});
 });
@@ -179,10 +179,10 @@ function sendListConcertsAfterPhoto($, events, nPages, options){
             sk.searchEventsCache(options, false)
             .then(function(events) {
                 for (var i = 0; i < events.length; i++) {
-                 arrayEvents[(btnPressed - 1) * options.per_page + i] = events[i];   
-             }
-             editMessage($, events, keyboard);
-         })
+                    arrayEvents[(btnPressed - 1) * options.per_page + i] = events[i];   
+                }
+                editMessage($, events, keyboard);
+            })
             .catch(function(error) {
                 console.log(error);
             });

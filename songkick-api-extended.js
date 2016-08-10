@@ -39,10 +39,8 @@ function searchCache(uri, resultType, fullResponse) {
 	r.on('connect', function () {
 		r.get(key, function (err, reply) {
 			if (!err && reply) {
-				console.log("cache hit")
 				deferred.resolve(JSON.parse(reply));
 			} else {
-				console.log("cache miss");
 				request.get(uri, function(error, response, body) {
 					body = JSON.parse(body);
 					if (body.resultsPage.status === 'error') {
@@ -61,7 +59,6 @@ function searchCache(uri, resultType, fullResponse) {
 	});
 
 	r.on("error", function (err) {
-		console.log("error redis")
 		request.get(uri, function(error, response, body) {
 			body = JSON.parse(body);
 			if (body.resultsPage.status === 'error') {
